@@ -3,32 +3,56 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Overlay Fortnite</title>
+<title>Overlay Fortnite — RedBlood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --rb-1: #db3b7a;
+    --rb-4: #9f2657;
+    --rb-8: #4f0a29;
+    --rb-white: #f2f2f2;
+    --rb-gradient: linear-gradient(120deg, var(--rb-1), var(--rb-8));
+  }
   html, body {
     margin: 0;
     background: transparent;
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: 'Chakra Petch', sans-serif;
   }
   #card {
+    position: relative;
     display: inline-flex;
-    align-items: center;
-    gap: 0;
-    padding: 14px 22px;
-    border-radius: 10px;
-    background: rgba(10, 12, 16, 0.55);
+    align-items: stretch;
+    padding: 0;
+    background: linear-gradient(120deg, rgba(10,4,7,0.72), rgba(79,10,41,0.6));
+    border: 1px solid rgba(219,59,122,0.35);
     backdrop-filter: blur(4px);
-    color: #fff;
+    color: var(--rb-white);
     opacity: 0;
     transition: opacity .4s ease;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
   }
   #card.ready { opacity: 1; }
+  #accentBar {
+    width: 5px;
+    flex-shrink: 0;
+    background: var(--rb-gradient);
+  }
+  #cardInner {
+    display: inline-flex;
+    align-items: center;
+    padding: 13px 22px;
+  }
   .pseudo {
-    font-size: 1.15rem;
+    font-family: 'Chakra Petch', sans-serif;
     font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: .02em;
     padding-right: 20px;
     margin-right: 20px;
-    border-right: 1px solid rgba(255,255,255,0.25);
+    border-right: 1px solid rgba(242,242,242,0.2);
     text-shadow: 0 1px 3px rgba(0,0,0,0.6);
     white-space: nowrap;
   }
@@ -38,41 +62,51 @@
   }
   .stat {
     text-align: center;
-    min-width: 60px;
+    min-width: 56px;
   }
   .stat .value {
-    font-size: 1.3rem;
-    font-weight: 800;
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900;
+    font-size: 1.5rem;
     line-height: 1;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
   }
-  .stat .value.rank { color: #ffd35c; }
-  .stat .value.score { color: #7fe0ff; }
-  .stat .value.matches { color: #b8ffb0; }
+  .stat .value.rank {
+    color: var(--rb-1);
+  }
+  .stat .value.score,
+  .stat .value.matches {
+    color: var(--rb-white);
+  }
   .stat .label {
-    font-size: 0.62rem;
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 600;
+    font-size: 0.6rem;
     text-transform: uppercase;
-    letter-spacing: .06em;
-    color: rgba(255,255,255,0.7);
-    margin-top: 3px;
+    letter-spacing: .08em;
+    color: rgba(242,242,242,0.65);
+    margin-top: 2px;
   }
 </style>
 </head>
 <body>
 <div id="card">
-  <div class="pseudo" id="pseudo">—</div>
-  <div class="stats">
-    <div class="stat">
-      <div class="value rank" id="rank">—</div>
-      <div class="label">Rang</div>
-    </div>
-    <div class="stat">
-      <div class="value score" id="score">—</div>
-      <div class="label">Points</div>
-    </div>
-    <div class="stat">
-      <div class="value matches" id="matches">—</div>
-      <div class="label">Matchs</div>
+  <div id="accentBar"></div>
+  <div id="cardInner">
+    <div class="pseudo" id="pseudo">—</div>
+    <div class="stats">
+      <div class="stat">
+        <div class="value rank" id="rank">—</div>
+        <div class="label">Rang</div>
+      </div>
+      <div class="stat">
+        <div class="value score" id="score">—</div>
+        <div class="label">Points</div>
+      </div>
+      <div class="stat">
+        <div class="value matches" id="matches">—</div>
+        <div class="label">Matchs</div>
+      </div>
     </div>
   </div>
 </div>
