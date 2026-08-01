@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overlay Fortnite — Configuration</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #262b36;
+    --text: #e9edf3;
+    --muted: #8b93a3;
+    --accent: #7c5cff;
+    --accent-hover: #916fff;
+    --good: #33d17a;
+    --bad: #ff5c6c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px 16px 64px;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin: 0 0 4px;
+  }
+  .subtitle {
+    color: var(--muted);
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .panel h2 {
+    font-size: 1rem;
+    margin: 0 0 14px;
+    color: var(--text);
+  }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  input[type=text], select {
+    background: #0f1115;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  input[type=text] { width: 100%; }
+  input[type=text]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.ok { background: rgba(51,209,122,0.12); color: var(--good); }
+  .status.err { background: rgba(255,92,108,0.12); color: var(--bad); }
+  .meta {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+  .modes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .mode-row {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    background: #0f1115;
+  }
+  .mode-row-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .mode-badge {
+    flex-shrink: 0;
+    width: 52px;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 7px 0;
+    border-radius: 6px;
+    background: rgba(124,92,255,0.15);
+    color: var(--accent);
+  }
+  .mode-url-input { flex: 1; }
+  .mode-meta {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .slots {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .slot-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    background: #0f1115;
+  }
+  .slot-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .slot-label-input {
+    flex: 1;
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 6px 8px;
+    border-radius: 6px;
+    color: var(--text);
+  }
+  .slot-label-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--panel);
+  }
+  .slot-mode-select {
+    flex-shrink: 0;
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+  .slot-remove-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--bad);
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .slot-remove-btn:hover { background: rgba(255,92,108,0.12); }
+  .slot-stats {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .slot-overlay-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 0.78rem;
+  }
+  .slot-overlay-link code {
+    flex: 1;
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    padding: 6px 8px;
+    border-radius: 6px;
+    color: var(--muted);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .slot-copy-btn {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+  #addSlotBtn {
+    margin-top: 14px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--text);
+    width: 100%;
+  }
+  #addSlotBtn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: transparent;
+  }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>Overlay Fortnite — Panneau de configuration</h1>
+    <p class="subtitle">Actualisez les données du tournoi manuellement (quota API limité) puis choisissez le joueur à afficher sur chaque overlay.</p>
+  </div>
+
+  <section class="panel">
+    <h2>1. Tournois</h2>
+    <p class="subtitle" style="margin:0 0 14px;">Un lien par format. N'actualisez que les formats que vous suivez réellement — chaque actualisation consomme une requête sur le quota.</p>
+    <div id="modesContainer" class="modes"></div>
+    <div id="status" class="status"></div>
+  </section>
+
+  <section class="panel">
+    <h2>2. Joueurs suivis</h2>
+    <p class="subtitle" style="margin:0 0 14px;">Chaque emplacement a son propre mode et sa propre page d'overlay. En duo/trio, choisissez le pseudo exact du joueur à afficher — le rang/score/matchs affichés sont ceux de son équipe.</p>
+    <div id="slotsContainer" class="slots"></div>
+    <button id="addSlotBtn" type="button">+ Ajouter un joueur suivi</button>
+  </section>
+</main>
+
+<script>
+const MODE_LABELS = { solo: 'Solo', duo: 'Duo', trio: 'Trio' };
+const MODES = ['solo', 'duo', 'trio'];
+
+const modesContainer = document.getElementById('modesContainer');
+const statusEl = document.getElementById('status');
+const slotsContainer = document.getElementById('slotsContainer');
+const addSlotBtn = document.getElementById('addSlotBtn');
+
+let tournamentURLs = { solo: '', duo: '', trio: '' };
+let modeData = {
+  solo: { fetchedAt: null, tournamentName: null, teamCount: 0, players: [] },
+  duo: { fetchedAt: null, tournamentName: null, teamCount: 0, players: [] },
+  trio: { fetchedAt: null, tournamentName: null, teamCount: 0, players: [] }
+};
+let slots = [];
+
+function showStatus(message, ok) {
+  statusEl.textContent = message;
+  statusEl.className = 'status show ' + (ok ? 'ok' : 'err');
+}
+
+function escapeAttr(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function modeMetaText(mode) {
+  const d = modeData[mode];
+  if (!d.fetchedAt) return 'Aucune donnée chargée pour le moment.';
+  const date = new Date(d.fetchedAt).toLocaleString('fr-FR');
+  const unit = mode === 'solo' ? 'joueur(s)' : 'équipe(s)';
+  return `${d.tournamentName || 'Tournoi'} · ${d.teamCount} ${unit} · actualisé ${date}`;
+}
+
+function renderModes() {
+  modesContainer.innerHTML = MODES.map(mode => `
+    <div class="mode-row" data-mode="${mode}">
+      <div class="mode-row-header">
+        <span class="mode-badge">${MODE_LABELS[mode]}</span>
+        <input type="text" class="mode-url-input" data-mode="${mode}" placeholder="https://fortnitetracker.com/events/..." value="${escapeAttr(tournamentURLs[mode] || '')}">
+        <button type="button" class="mode-refresh-btn" data-mode="${mode}">Actualiser</button>
+      </div>
+      <div class="mode-meta">${modeMetaText(mode)}</div>
+    </div>
+  `).join('');
+}
+
+function slotStatsText(slot) {
+  if (!slot.selectedPlayer) return 'Aucun joueur sélectionné.';
+  const list = modeData[slot.mode]?.players || [];
+  const player = list.find(p => p.displayName === slot.selectedPlayer);
+  if (!player) return 'Joueur introuvable dans les dernières données pour ce mode.';
+  const teamSuffix = player.teamDisplayName && player.teamDisplayName !== player.displayName
+    ? ` · équipe : ${player.teamDisplayName}`
+    : '';
+  return `Rang #${player.rank} · ${player.score} pts · ${player.matchesPlayed} matchs${teamSuffix}`;
+}
+
+function renderSlots() {
+  if (slots.length === 0) {
+    slotsContainer.innerHTML = '<p class="meta">Aucun joueur suivi. Ajoutez-en un ci-dessous.</p>';
+    return;
+  }
+  slotsContainer.innerHTML = slots.map(slot => {
+    const overlayURL = `${location.origin}/overlay.html?slot=${encodeURIComponent(slot.id)}`;
+    const datalistId = `playerList-${slot.id}`;
+    const options = (modeData[slot.mode]?.players || [])
+      .map(p => `<option value="${escapeAttr(p.displayName)}">`).join('');
+    const modeOptions = MODES.map(m => `<option value="${m}" ${slot.mode === m ? 'selected' : ''}>${MODE_LABELS[m]}</option>`).join('');
+    return `
+      <div class="slot-card" data-id="${escapeAttr(slot.id)}">
+        <div class="slot-header">
+          <input type="text" class="slot-label-input" value="${escapeAttr(slot.label)}" placeholder="Nom de l'emplacement">
+          <select class="slot-mode-select">${modeOptions}</select>
+          <button class="slot-remove-btn" type="button" title="Supprimer cet emplacement">✕</button>
+        </div>
+        <label>Pseudo</label>
+        <input type="text" class="slot-player-input" list="${datalistId}" placeholder="Commencez à taper un pseudo..." value="${escapeAttr(slot.selectedPlayer || '')}">
+        <datalist id="${datalistId}">${options}</datalist>
+        <div class="slot-stats">${slotStatsText(slot)}</div>
+        <div class="slot-overlay-link">
+          <code>${overlayURL}</code>
+          <button class="slot-copy-btn" type="button" data-url="${overlayURL}">Copier le lien</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadConfig() {
+  const res = await fetch('/api/config');
+  const config = await res.json();
+  tournamentURLs = config.tournamentURLs || { solo: '', duo: '', trio: '' };
+  slots = config.slots || [];
+}
+
+async function loadPlayersForMode(mode) {
+  const res = await fetch(`/api/players?mode=${mode}`);
+  const data = await res.json();
+  modeData[mode] = {
+    fetchedAt: data.fetchedAt,
+    tournamentName: data.tournamentName,
+    teamCount: data.teamCount || 0,
+    players: data.players || []
+  };
+}
+
+async function loadAllPlayers() {
+  await Promise.all(MODES.map(loadPlayersForMode));
+}
+
+modesContainer.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.mode-refresh-btn');
+  if (!btn) return;
+  const mode = btn.dataset.mode;
+  const row = btn.closest('.mode-row');
+  const tournamentURL = row.querySelector('.mode-url-input').value.trim();
+
+  if (!tournamentURL) {
+    showStatus(`Renseignez un lien de tournoi pour le mode ${MODE_LABELS[mode]}.`, false);
+    return;
+  }
+
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Actualisation...';
+  try {
+    const res = await fetch('/api/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, tournamentURL })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur inconnue');
+    tournamentURLs[mode] = tournamentURL;
+    const unit = mode === 'solo' ? 'joueurs' : 'équipes';
+    showStatus(`${MODE_LABELS[mode]} actualisé : ${data.tournamentName} (${data.teamCount} ${unit}).`, true);
+    await loadPlayersForMode(mode);
+    renderModes();
+    renderSlots();
+  } catch (err) {
+    showStatus(err.message, false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+});
+
+addSlotBtn.addEventListener('click', async () => {
+  const res = await fetch('/api/slots', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ label: `Joueur ${slots.length + 1}`, mode: 'solo' })
+  });
+  const slot = await res.json();
+  slots.push(slot);
+  renderSlots();
+});
+
+slotsContainer.addEventListener('change', async (e) => {
+  const card = e.target.closest('.slot-card');
+  if (!card) return;
+  const id = card.dataset.id;
+  const slot = slots.find(s => s.id === id);
+  if (!slot) return;
+
+  if (e.target.classList.contains('slot-player-input')) {
+    const name = e.target.value.trim();
+    slot.selectedPlayer = name || null;
+    await fetch(`/api/slots/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selectedPlayer: slot.selectedPlayer })
+    });
+    renderSlots();
+  } else if (e.target.classList.contains('slot-label-input')) {
+    const label = e.target.value.trim() || `Joueur ${id}`;
+    slot.label = label;
+    await fetch(`/api/slots/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label })
+    });
+  } else if (e.target.classList.contains('slot-mode-select')) {
+    const mode = e.target.value;
+    slot.mode = mode;
+    slot.selectedPlayer = null;
+    await fetch(`/api/slots/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, selectedPlayer: null })
+    });
+    renderSlots();
+  }
+});
+
+slotsContainer.addEventListener('click', async (e) => {
+  const card = e.target.closest('.slot-card');
+  if (!card) return;
+  const id = card.dataset.id;
+
+  if (e.target.classList.contains('slot-remove-btn')) {
+    await fetch(`/api/slots/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    slots = slots.filter(s => s.id !== id);
+    renderSlots();
+  } else if (e.target.classList.contains('slot-copy-btn')) {
+    const url = e.target.dataset.url;
+    try {
+      await navigator.clipboard.writeText(url);
+      const original = e.target.textContent;
+      e.target.textContent = 'Copié !';
+      setTimeout(() => { e.target.textContent = original; }, 1500);
+    } catch {
+      // clipboard API indisponible : le lien reste sélectionnable manuellement
+    }
+  }
+});
+
+(async function init() {
+  await loadConfig();
+  await loadAllPlayers();
+  renderModes();
+  renderSlots();
+})();
+</script>
+</body>
+</html>

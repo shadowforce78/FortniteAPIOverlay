@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overlay Fortnite</title>
+<style>
+  html, body {
+    margin: 0;
+    background: transparent;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  #card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    padding: 14px 22px;
+    border-radius: 10px;
+    background: rgba(10, 12, 16, 0.55);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    opacity: 0;
+    transition: opacity .4s ease;
+  }
+  #card.ready { opacity: 1; }
+  .pseudo {
+    font-size: 1.15rem;
+    font-weight: 700;
+    padding-right: 20px;
+    margin-right: 20px;
+    border-right: 1px solid rgba(255,255,255,0.25);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    white-space: nowrap;
+  }
+  .stats {
+    display: flex;
+    gap: 24px;
+  }
+  .stat {
+    text-align: center;
+    min-width: 60px;
+  }
+  .stat .value {
+    font-size: 1.3rem;
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  .stat .value.rank { color: #ffd35c; }
+  .stat .value.score { color: #7fe0ff; }
+  .stat .value.matches { color: #b8ffb0; }
+  .stat .label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: rgba(255,255,255,0.7);
+    margin-top: 3px;
+  }
+</style>
+</head>
+<body>
+<div id="card">
+  <div class="pseudo" id="pseudo">—</div>
+  <div class="stats">
+    <div class="stat">
+      <div class="value rank" id="rank">—</div>
+      <div class="label">Rang</div>
+    </div>
+    <div class="stat">
+      <div class="value score" id="score">—</div>
+      <div class="label">Points</div>
+    </div>
+    <div class="stat">
+      <div class="value matches" id="matches">—</div>
+      <div class="label">Matchs</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const card = document.getElementById('card');
+const pseudoEl = document.getElementById('pseudo');
+const rankEl = document.getElementById('rank');
+const scoreEl = document.getElementById('score');
+const matchesEl = document.getElementById('matches');
+
+const slotId = new URLSearchParams(location.search).get('slot') || '1';
+
+async function refresh() {
+  try {
+    const res = await fetch(`/api/overlay-data?slot=${encodeURIComponent(slotId)}`, { cache: 'no-store' });
+    const data = await res.json();
+    if (!data.ready) return;
+    pseudoEl.textContent = data.pseudo;
+    rankEl.textContent = '#' + data.rank;
+    scoreEl.textContent = data.score;
+    matchesEl.textContent = data.matchesPlayed;
+    card.classList.add('ready');
+  } catch (err) {
+    // silencieux : on garde le dernier affichage valide en cas d'erreur réseau
+  }
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
