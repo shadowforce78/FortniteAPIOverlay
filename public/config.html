@@ -287,7 +287,10 @@
 <body>
 <main>
   <div>
-    <h1><span>RedBlood</span> Overlay</h1>
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+      <h1><span>RedBlood</span> Overlay</h1>
+      <button id="logoutBtn" type="button" style="background:transparent; border:1px solid var(--border); color:var(--muted); flex-shrink:0;">Déconnexion</button>
+    </div>
     <p class="subtitle">Actualisez les données du tournoi manuellement (quota API limité) puis choisissez le joueur à afficher sur chaque overlay.</p>
     <div class="header-bar"></div>
   </div>
@@ -398,10 +401,16 @@ function renderSlots() {
 
 async function loadConfig() {
   const res = await fetch('/api/config');
+  if (res.status === 401) return location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
   const config = await res.json();
   tournamentURLs = config.tournamentURLs || { solo: '', duo: '', trio: '' };
   slots = config.slots || [];
 }
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  location.href = '/login.html';
+});
 
 async function loadPlayersForMode(mode) {
   const res = await fetch(`/api/players?mode=${mode}`);

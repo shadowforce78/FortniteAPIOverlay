@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — RedBlood Esport</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Chakra+Petch:wght@500;600;700&family=Montserrat:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --rb-1: #db3b7a;
+    --rb-8: #4f0a29;
+    --rb-white: #f2f2f2;
+    --rb-gradient: linear-gradient(120deg, var(--rb-1), var(--rb-8));
+    --bg: #0a0708;
+    --panel: #150c11;
+    --border: rgba(219,59,122,0.18);
+    --text: var(--rb-white);
+    --muted: #9b8a91;
+    --bad: #ff5c6c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+  }
+  .panel {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 360px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--rb-gradient);
+  }
+  h1 {
+    font-family: 'Big Shoulders Display', sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    font-size: 1.6rem;
+    margin: 0 0 4px;
+    text-align: center;
+  }
+  h1 span {
+    background: var(--rb-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle {
+    color: var(--muted);
+    margin: 0 0 22px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  label {
+    display: block;
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  input[type=password] {
+    width: 100%;
+    background: #0a0708;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+  }
+  input[type=password]:focus {
+    outline: none;
+    border-color: var(--rb-1);
+  }
+  button {
+    margin-top: 16px;
+    width: 100%;
+    background: var(--rb-gradient);
+    color: var(--rb-white);
+    border: none;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.18); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+  .error {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: var(--bad);
+    background: rgba(255,92,108,0.12);
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: none;
+  }
+  .error.show { display: block; }
+</style>
+</head>
+<body>
+<div class="panel">
+  <h1><span>RedBlood</span> Overlay</h1>
+  <p class="subtitle">Connexion à l'espace de configuration.</p>
+  <form id="loginForm">
+    <label for="password">Mot de passe</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" autofocus required>
+    <button type="submit">Se connecter</button>
+    <div id="error" class="error"></div>
+  </form>
+</div>
+
+<script>
+const form = document.getElementById('loginForm');
+const errorEl = document.getElementById('error');
+const passwordInput = document.getElementById('password');
+
+const params = new URLSearchParams(location.search);
+const redirectTo = params.get('redirect') || '/config.html';
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = form.querySelector('button');
+  btn.disabled = true;
+  errorEl.classList.remove('show');
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: passwordInput.value })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur de connexion.');
+    location.href = redirectTo;
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.classList.add('show');
+    passwordInput.select();
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

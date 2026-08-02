@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import session from 'express-session';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,9 +11,61 @@ const DATA_DIR = path.join(__dirname, 'data');
 const CONFIG_PATH = path.join(DATA_DIR, 'config.json');
 const CACHE_PATH = path.join(DATA_DIR, 'cache.json');
 
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+    console.warn('ATTENTION : ADMIN_PASSWORD non défini dans .env — la page de config est inaccessible.');
+}
+
 const app = express();
+app.set('trust proxy', 1); // derrière un reverse proxy (VPS) pour que les cookies "secure" fonctionnent en HTTPS
 app.use(express.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'redblood-overlay-dev-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: 'auto',
+        maxAge: 1000 * 60 * 60 * 12 // 12h
+    }
+}));
+
+function requireAuth(req, res, next) {
+    if (req.session?.authenticated) return next();
+    res.status(401).json({ error: 'Non authentifié.' });
+}
+
+// La page de config est protégée ; l'overlay (servi depuis un VPS dans OBS) reste public.
+app.get('/config.html', (req, res) => {
+    if (!req.session?.authenticated) return res.redirect('/login.html');
+    res.sendFile(path.join(__dirname, 'public', 'config.html'));
+});
+
+app.post('/api/login', (req, res) => {
+    const { password } = req.body || {};
+    if (!ADMIN_PASSWORD) {
+        return res.status(500).json({ error: "ADMIN_PASSWORD n'est pas configuré côté serveur." });
+    }
+    if (typeof password === 'string' && password === ADMIN_PASSWORD) {
+        req.session.authenticated = true;
+        return res.json({ ok: true });
+    }
+    res.status(401).json({ error: 'Mot de passe incorrect.' });
+});
+
+app.post('/api/logout', (req, res) => {
+    req.session.destroy(() => res.json({ ok: true }));
+});
+
+app.get('/api/session', (req, res) => {
+    res.json({ authenticated: !!req.session?.authenticated });
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Protège toutes les routes utilisées par la page de config (pas /api/overlay-data, public pour l'overlay).
+app.use(['/api/config', '/api/slots', '/api/refresh', '/api/players'], requireAuth);
 
 function readJSON(filePath, fallback) {
     try {
@@ -220,7 +273,7 @@ app.get('/api/overlay-data', (req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
     console.log(`Config : http://localhost:${PORT}/config.html`);
     console.log(`Overlay: http://localhost:${PORT}/overlay.html`);
