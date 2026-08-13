@@ -20,7 +20,7 @@ const app = express();
 app.set('trust proxy', 1); // derrière un reverse proxy (VPS) pour que les cookies "secure" fonctionnent en HTTPS
 app.use(express.json());
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'redblood-overlay-dev-secret',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
