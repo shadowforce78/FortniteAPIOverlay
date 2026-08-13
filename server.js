@@ -197,6 +197,47 @@ app.get('/api/players', (req, res) => {
     });
 });
 
+// Appelle l'API du tournoi pour un mode (consomme le quota), met à jour le cache et
+// renvoie le nombre de matchs joués par équipe avant/après (utile pour détecter les
+// changements côté joueurs suivis sans dupliquer la logique entre la route manuelle
+// et l'actualisation automatique).
+async function refreshMode(mode, tournamentURL) {
+    const previousCache = readCache()[mode];
+    const previousMatchesByPlayer = new Map();
+    if (previousCache) {
+        for (const team of previousCache.leaderboard) {
+            for (const member of team.members) {
+                previousMatchesByPlayer.set(member.displayName, team.matchesPlayed);
+            }
+        }
+    }
+
+    const data = await fetchTournamentData(tournamentURL);
+    const cache = readCache();
+    cache[mode] = {
+        fetchedAt: new Date().toISOString(),
+        tournamentName: data.name,
+        eventId: data.eventId,
+        eventWindowId: data.eventWindowId,
+        isLive: data.isLive !== false,
+        sourceURL: tournamentURL,
+        leaderboard: data.leaderboard.map(team => ({
+            rank: team.rank,
+            teamDisplayName: team.displayName,
+            score: team.score,
+            matchesPlayed: team.matchesPlayed,
+            members: (team.teamMembers || [{ displayName: team.displayName }]).map(m => ({ displayName: m.displayName }))
+        }))
+    };
+    writeJSON(CACHE_PATH, cache);
+
+    const config = readConfig();
+    config.tournamentURLs[mode] = tournamentURL;
+    writeJSON(CONFIG_PATH, config);
+
+    return { cacheEntry: cache[mode], previousMatchesByPlayer };
+}
+
 // Déclenche un appel à l'API du tournoi pour un mode (consomme le quota) et met à jour le cache
 app.post('/api/refresh', async (req, res) => {
     const config = readConfig();
@@ -208,30 +249,13 @@ app.post('/api/refresh', async (req, res) => {
     }
 
     try {
-        const data = await fetchTournamentData(tournamentURL);
-        const cache = readCache();
-        cache[mode] = {
-            fetchedAt: new Date().toISOString(),
-            tournamentName: data.name,
-            eventId: data.eventId,
-            eventWindowId: data.eventWindowId,
-            leaderboard: data.leaderboard.map(team => ({
-                rank: team.rank,
-                teamDisplayName: team.displayName,
-                score: team.score,
-                matchesPlayed: team.matchesPlayed,
-                members: (team.teamMembers || [{ displayName: team.displayName }]).map(m => ({ displayName: m.displayName }))
-            }))
-        };
-        writeJSON(CACHE_PATH, cache);
-        config.tournamentURLs[mode] = tournamentURL;
-        writeJSON(CONFIG_PATH, config);
+        const { cacheEntry } = await refreshMode(mode, tournamentURL);
         res.json({
             ok: true,
             mode,
-            fetchedAt: cache[mode].fetchedAt,
-            tournamentName: cache[mode].tournamentName,
-            teamCount: cache[mode].leaderboard.length
+            fetchedAt: cacheEntry.fetchedAt,
+            tournamentName: cacheEntry.tournamentName,
+            teamCount: cacheEntry.leaderboard.length
         });
     } catch (error) {
         console.error('Erreur /api/refresh:', error.response?.status || error.status, error.response?.data || error.message);
@@ -242,6 +266,58 @@ app.post('/api/refresh', async (req, res) => {
         res.status(status && status < 500 ? status : 502).json({ error: message });
     }
 });
+
+// --- Actualisation automatique -----------------------------------------------------
+// Il n'existe pas de endpoint "léger" côté API pour savoir si une game vient de se
+// terminer (l'endpoint historique /tournaments/{id}/matches ne couvre que les
+// tournois déjà indexés, pas les fenêtres live en cours). Le seul signal temps réel
+// est le champ "matchesPlayed" de chaque équipe dans la réponse live elle-même — donc
+// impossible d'éviter l'appel en lui-même. On limite plutôt les appels inutiles :
+// on ne poll que les modes ayant au moins un joueur réellement suivi, et on arrête
+// dès que la fenêtre est terminée (isLive: false) pour ce lien précis.
+const AUTO_REFRESH_INTERVAL_MS = (Number(process.env.AUTO_REFRESH_MINUTES) || 30) * 60 * 1000;
+
+async function autoRefreshTick() {
+    const config = readConfig();
+    const cache = readCache();
+
+    for (const mode of MODES) {
+        const tournamentURL = config.tournamentURLs[mode];
+        if (!tournamentURL) continue;
+
+        const trackedSlots = config.slots.filter(s => s.mode === mode && s.selectedPlayer);
+        if (trackedSlots.length === 0) continue; // personne suivi dans ce mode : on ne consomme pas de quota pour rien
+
+        const cached = cache[mode];
+        if (cached && cached.isLive === false && cached.sourceURL === tournamentURL) {
+            continue; // ce tournoi est déjà connu comme terminé, plus rien à aller chercher
+        }
+
+        try {
+            const { cacheEntry, previousMatchesByPlayer } = await refreshMode(mode, tournamentURL);
+
+            for (const slot of trackedSlots) {
+                const team = cacheEntry.leaderboard.find(t => t.members.some(m => m.displayName === slot.selectedPlayer));
+                if (!team) continue;
+                const before = previousMatchesByPlayer.get(slot.selectedPlayer);
+                if (before !== undefined && team.matchesPlayed > before) {
+                    console.log(`[auto-refresh] Nouvelle game détectée pour "${slot.selectedPlayer}" (${mode}) : ${before} -> ${team.matchesPlayed} matchs, rang #${team.rank}.`);
+                }
+            }
+
+            if (!cacheEntry.isLive) {
+                console.log(`[auto-refresh] Fenêtre "${cacheEntry.tournamentName}" (${mode}) terminée, arrêt des actualisations automatiques pour ce lien.`);
+            }
+        } catch (error) {
+            const status = error.status || error.response?.status;
+            console.error(`[auto-refresh] Échec pour le mode ${mode}:`, status || error.message);
+            // On ne relance pas immédiatement : on retentera au prochain tick, quota ou pas.
+        }
+    }
+}
+
+setInterval(autoRefreshTick, AUTO_REFRESH_INTERVAL_MS);
+console.log(`Actualisation automatique : toutes les ${AUTO_REFRESH_INTERVAL_MS / 60000} min (uniquement les modes avec joueur suivi et tournoi encore live).`);
 
 // Données affichées par l'overlay pour l'emplacement (slot) demandé
 app.get('/api/overlay-data', (req, res) => {
