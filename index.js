@@ -30,21 +30,43 @@ export function getTournamentID(tournamentURL) {
 
 const DEFAULT_MAX_PAGES = 50;
 
+// Sur le plan Free, citoapi.com sert les données avec un délai de 60s : le tout premier
+// appel sur un nouveau snapshot (nouvelle page ou nouvelle fenêtre de tournoi) peut
+// répondre 503 DELAYED_DATA_NOT_READY tant que ce snapshot n'est pas encore "chaud".
+// L'API indique elle-même qu'un simple retry après retry_after_seconds suffit.
+const DELAYED_DATA_MAX_RETRIES = 2;
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function requestLeaderboardPage(fullURL, params) {
-    const response = await axios.get(fullURL, {
-        headers: {
-            'x-api-key': key
-        },
-        params
-    });
+    for (let attempt = 0; ; attempt++) {
+        try {
+            const response = await axios.get(fullURL, {
+                headers: {
+                    'x-api-key': key
+                },
+                params
+            });
 
-    if (!response.data?.success || !response.data?.data) {
-        const err = new Error(response.data?.message || "Réponse inattendue de l'API du tournoi.");
-        err.status = 502;
-        throw err;
+            if (!response.data?.success || !response.data?.data) {
+                const err = new Error(response.data?.message || "Réponse inattendue de l'API du tournoi.");
+                err.status = 502;
+                throw err;
+            }
+
+            return response.data.data;
+        } catch (error) {
+            const code = error.response?.data?.error?.code;
+            const retryAfter = error.response?.data?.error?.retry_after_seconds;
+            if (code === 'DELAYED_DATA_NOT_READY' && attempt < DELAYED_DATA_MAX_RETRIES) {
+                await sleep((retryAfter || 60) * 1000);
+                continue;
+            }
+            throw error;
+        }
     }
-
-    return response.data.data;
 }
 
 export async function fetchTournamentData(tournamentURL) {
