@@ -275,7 +275,7 @@ app.post('/api/refresh', async (req, res) => {
 // impossible d'éviter l'appel en lui-même. On limite plutôt les appels inutiles :
 // on ne poll que les modes ayant au moins un joueur réellement suivi, et on arrête
 // dès que la fenêtre est terminée (isLive: false) pour ce lien précis.
-const AUTO_REFRESH_INTERVAL_MS = (Number(process.env.AUTO_REFRESH_MINUTES) || 30) * 60 * 1000;
+const AUTO_REFRESH_INTERVAL_MS = (Number(process.env.AUTO_REFRESH_MINUTES) || 15) * 60 * 1000;
 
 async function autoRefreshTick() {
     const config = readConfig();
