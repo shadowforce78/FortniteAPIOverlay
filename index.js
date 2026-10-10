@@ -28,79 +28,20 @@ export function getTournamentID(tournamentURL) {
     return { id, window };
 }
 
-const DEFAULT_MAX_PAGES = 50;
-
-// Sur le plan Free, citoapi.com sert les données avec un délai de 60s : le tout premier
-// appel sur un nouveau snapshot (nouvelle page ou nouvelle fenêtre de tournoi) peut
-// répondre 503 DELAYED_DATA_NOT_READY tant que ce snapshot n'est pas encore "chaud".
-// L'API indique elle-même qu'un simple retry après retry_after_seconds suffit.
-const DELAYED_DATA_MAX_RETRIES = 2;
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function requestLeaderboardPage(fullURL, params) {
-    for (let attempt = 0; ; attempt++) {
-        try {
-            const response = await axios.get(fullURL, {
-                headers: {
-                    'x-api-key': key
-                },
-                params
-            });
-
-            if (!response.data?.success || !response.data?.data) {
-                const err = new Error(response.data?.message || "Réponse inattendue de l'API du tournoi.");
-                err.status = 502;
-                throw err;
-            }
-
-            return response.data.data;
-        } catch (error) {
-            const code = error.response?.data?.error?.code;
-            const retryAfter = error.response?.data?.error?.retry_after_seconds;
-            if (code === 'DELAYED_DATA_NOT_READY' && attempt < DELAYED_DATA_MAX_RETRIES) {
-                await sleep((retryAfter || 60) * 1000);
-                continue;
-            }
-            throw error;
-        }
-    }
-}
-
+// Un seul appel par actualisation : la réponse contient déjà les 4000 premières équipes.
+// Pas de pagination ni de réessai (sur le plan Free, chaque nouvelle page renvoie un 503
+// "DELAYED_DATA_NOT_READY" et attendre 60 s par page bloquait l'actualisation pendant des heures).
 export async function fetchTournamentData(tournamentURL) {
     const { id, window } = getTournamentID(tournamentURL);
-    const fullEndpoint = endpoint.replace('{eventId}', id).replace('{windowId}', window);
-    const fullURL = baseURL + fullEndpoint;
+    const fullURL = baseURL + endpoint.replace('{eventId}', id).replace('{windowId}', window);
 
-    // 1 seul appel sans "page" : l'API renvoie tout le classement d'un coup tant
-    // qu'il tient sous son plafond interne (le cas le plus fréquent, et le moins
-    // coûteux en quota).
-    let current = await requestLeaderboardPage(fullURL, {});
-    if (!current.hasMore) {
-        return current;
+    const response = await axios.get(fullURL, { headers: { 'x-api-key': key } });
+
+    if (!response.data?.success || !response.data?.data) {
+        const err = new Error(response.data?.message || "Réponse inattendue de l'API du tournoi.");
+        err.status = 502;
+        throw err;
     }
 
-    // Classement trop volumineux pour tenir dans une seule réponse : bascule sur
-    // la pagination explicite ("page" est 0-indexée côté API) jusqu'à ce que
-    // hasMore devienne false, ou qu'on atteigne le plafond maxPages annoncé par
-    // l'API (garde-fou contre une boucle infinie).
-    const maxPages = current.maxPages || DEFAULT_MAX_PAGES;
-    let leaderboard = [];
-    let page = 0;
-
-    while (true) {
-        const pageTeams = current.leaderboard || [];
-        leaderboard = leaderboard.concat(pageTeams);
-
-        const reachedCap = page + 1 >= maxPages;
-        if (!current.hasMore || pageTeams.length === 0 || reachedCap) break;
-
-        page++;
-        current = await requestLeaderboardPage(fullURL, { page });
-    }
-
-    current.leaderboard = leaderboard;
-    return current;
+    return response.data.data;
 }
