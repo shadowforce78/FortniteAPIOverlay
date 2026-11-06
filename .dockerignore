@@ -1,0 +1,9 @@
+node_modules
+.git
+.claude
+.env
+data
+*.pdf
+*.bat
+Dockerfile
+docker-compose.yml

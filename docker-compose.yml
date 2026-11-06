@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    container_name: fortniteapi
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${PORT:-3001}:${PORT:-3001}"
+    volumes:
+      - ./data:/app/data
